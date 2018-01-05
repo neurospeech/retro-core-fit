@@ -40,6 +40,8 @@ namespace RetroCoreFit
                 new System.Reflection.AssemblyName("RetroCoreFit2"), AssemblyBuilderAccess.RunAndCollect);
             moduleBuilder = moduleBuilder ?? assemblyBuilder.DefineDynamicModule("RetroCoreFit2");
 
+            Dictionary<string, MethodInfo> methods = new Dictionary<string, MethodInfo>();
+
             TypeBuilder typeBuilder = moduleBuilder.DefineType(
                 "A._" + type.Name, 
                 System.Reflection.TypeAttributes.Public | TypeAttributes.Class);
@@ -61,6 +63,7 @@ namespace RetroCoreFit
                     null);
 
                 var il = m.GetILGenerator();
+                il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, fld);
                 il.Emit(OpCodes.Ret);
 
@@ -70,9 +73,11 @@ namespace RetroCoreFit
                 m = typeBuilder.DefineMethod(property.GetSetMethod().Name, MethodAttributes.Public | MethodAttributes.Virtual, 
                     property.GetSetMethod().ReturnType , new Type[] { property.PropertyType });
                 il = m.GetILGenerator();
+                il.Emit(OpCodes.Nop);
+                il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_1);
-                il.Emit(OpCodes.Stsfld,fld);
-                // il.Emit(OpCodes.Ret);
+                il.Emit(OpCodes.Stfld,fld);
+                il.Emit(OpCodes.Ret);
                 typeBuilder.DefineMethodOverride(m, property.GetSetMethod());
                 // p.SetSetMethod(m);
 
@@ -101,13 +106,28 @@ namespace RetroCoreFit
                 string plist = string.Join(",", method.GetParameters().Select(x => x.ParameterType.FullName));
                 string uniqueName = $"{method.Name}+{plist}";
 
+                methods[uniqueName] = method;
+
                 ilGen.Emit(OpCodes.Nop);
                 ilGen.Emit(OpCodes.Ldarg_0);
                 ilGen.Emit(OpCodes.Ldstr, uniqueName);
 
-                for (var i = 0; i < method.GetParameters().Length; i++)
+                var pls = method.GetParameters();
+
+                ilGen.Emit(OpCodes.Ldc_I4, pls.Length);
+
+                ilGen.Emit(OpCodes.Newarr, typeof(object));
+
+                for (var i = 0; i < pls.Length; i++)
                 {
-                    ilGen.Emit(OpCodes.Ldarg_S, i + 1);
+                    var mp = pls[i];
+                    ilGen.Emit(OpCodes.Dup);
+                    ilGen.Emit(OpCodes.Ldc_I4, i);
+                    ilGen.Emit(OpCodes.Ldarg_S, i+1);
+                    if (mp.ParameterType.IsValueType) {
+                        ilGen.Emit(OpCodes.Box, mp.ParameterType);
+                    }
+                    ilGen.Emit(OpCodes.Stelem_Ref);
                 }
                 ilGen.EmitCall(OpCodes.Call, invokeMethod, Type.EmptyTypes);
                 ilGen.Emit(OpCodes.Ret);
@@ -119,7 +139,7 @@ namespace RetroCoreFit
             }
 
             ServiceInterface si = Activator.CreateInstance(typeBuilder.CreateType()) as ServiceInterface;
-
+            si.Methods = methods;
             return si;
         }
     }
@@ -130,13 +150,15 @@ namespace RetroCoreFit
 
         internal Type interfaceType;
 
+        internal Dictionary<string, MethodInfo> Methods;
+
         public ServiceInterface()
         {           
 
             
         }
 
-        public Task<object> Invoke(string method, params object[] plist) {
+        public object Invoke(string method, params object[] plist) {
             return Task.FromResult<object>(null);
         }
 

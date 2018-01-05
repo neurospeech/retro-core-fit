@@ -22,11 +22,22 @@ namespace RetroCoreFit
         }
     }
 
+    public abstract class HttpMethodAttribute : NamedAttribute
+    {
+        public HttpMethodAttribute(string name, string path) : base(name)
+        {
+            this.Path = path;
+        }
+
+
+        public string Path { get;  }
+    }
+
 
     [System.AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
-    public sealed class PutAttribute : NamedAttribute
+    public sealed class PutAttribute : HttpMethodAttribute
     {
-        public PutAttribute(string name) : base(name)
+        public PutAttribute(string name) : base(name, "PUT")
         {
         }
     }
