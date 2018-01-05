@@ -22,7 +22,7 @@ namespace RetroCoreFit.Tests
 
             Assert.Equal("a", api.Authorize);
 
-            await api.UpdateAsync(1,new Product { });
+            // await api.UpdateAsync(1,new Product { });
             
 
         }
