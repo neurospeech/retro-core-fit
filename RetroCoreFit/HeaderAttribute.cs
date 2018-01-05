@@ -1,16 +1,19 @@
 ﻿using System;
+using System.Net.Http;
 
 namespace RetroCoreFit
 {
 
-    public class NamedAttribute : Attribute {
+    public abstract class RestAttribute : Attribute { }
+
+    public class NamedAttribute : RestAttribute {
 
         public NamedAttribute(string name)
         {
             this.Name = name;
         }
 
-        public string Name { get; }
+        public string Name { get; internal set; }
 
     }
 
@@ -24,24 +27,47 @@ namespace RetroCoreFit
 
     public abstract class HttpMethodAttribute : NamedAttribute
     {
-        public HttpMethodAttribute(string name, string path) : base(name)
+        public HttpMethodAttribute(HttpMethod method, string path) : base(path)
         {
-            this.Path = path;
+            this.Method = method;
         }
 
-
-        public string Path { get;  }
+        public HttpMethod Method { get; }
+        
     }
 
 
     [System.AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
     public sealed class PutAttribute : HttpMethodAttribute
     {
-        public PutAttribute(string name) : base(name, "PUT")
+        public PutAttribute(string name) : base(HttpMethod.Put, name)
         {
         }
     }
 
+    [System.AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
+    public sealed class PostAttribute : HttpMethodAttribute
+    {
+        public PostAttribute(string name) : base(HttpMethod.Post, name)
+        {
+        }
+    }
+
+    [System.AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
+    public sealed class GetAttribute : HttpMethodAttribute
+    {
+        public GetAttribute(string name) : base(HttpMethod.Get, name)
+        {
+        }
+    }
+
+    [System.AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
+    public sealed class DeleteAttribute : HttpMethodAttribute
+    {
+        public DeleteAttribute(string name) : base(HttpMethod.Delete, name)
+        {
+        }
+    }
 
     [System.AttributeUsage(AttributeTargets.Interface, Inherited = false, AllowMultiple = true)]
     public sealed class BaseUrlAttribute : NamedAttribute
@@ -52,11 +78,11 @@ namespace RetroCoreFit
     }
 
     [System.AttributeUsage(AttributeTargets.Parameter, Inherited = false, AllowMultiple = true)]
-    public sealed class BodyAttribute : Attribute {
+    public sealed class BodyAttribute : RestAttribute {
     }
 
 
-    public class ParamAttribute : Attribute {
+    public class ParamAttribute : RestAttribute {
         public ParamAttribute()
         {
 
@@ -97,6 +123,50 @@ namespace RetroCoreFit
         {
 
         }
+    }
+
+    [AttributeUsage(AttributeTargets.Parameter)]
+    public sealed class CookieAttribute : ParamAttribute
+    {
+        public CookieAttribute()
+        {
+
+        }
+
+        public CookieAttribute(string name) : base(name)
+        {
+
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Parameter)]
+    public sealed class MultipartAttribute : ParamAttribute {
+        public MultipartAttribute()
+        {
+
+        }
+
+        public MultipartAttribute(string name): base(name)
+        {
+
+        }
+
+    }
+
+    [AttributeUsage(AttributeTargets.Parameter)]
+    public sealed class MultipartFileAttribute : ParamAttribute
+    {
+        public MultipartFileAttribute()
+        {
+
+        }
+
+        public MultipartFileAttribute(string name) : base(name)
+        {
+
+        }
+
+        public string FileName { get; set; }
     }
 
 }

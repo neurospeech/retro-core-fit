@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -12,7 +14,7 @@ namespace RetroCoreFit.Tests
 
             InterfaceBuilder ib = new InterfaceBuilder();
 
-            var api = ib.Build<IApi>();
+            var api = ib.Build<IApi,TestBaseService>();
 
             Assert.Null(api.Authorize);
 
@@ -20,8 +22,17 @@ namespace RetroCoreFit.Tests
 
             Assert.Equal("a", api.Authorize);
 
-            await api.UpdateAsync(new Product { });
+            await api.UpdateAsync(1,new Product { });
             
+
+        }
+
+        public class TestBaseService : BaseService {
+
+            protected override Task<T> InvokeAsync<T>(HttpMethod method, string path, IEnumerable<RestParameter> plist)
+            {
+                return base.InvokeAsync<T>(method, path, plist);
+            }
 
         }
 
@@ -32,7 +43,10 @@ namespace RetroCoreFit.Tests
             string Authorize { get; set; }
 
             [Put("products/{id}/edit")]
-            Task<Product> UpdateAsync([Body] Product product, [Query] bool email = false);
+            Task<Product> UpdateAsync(
+                [Path("id")] long productId,
+                [Body] Product product, 
+                [Query] bool email = false);
 
         }
 
