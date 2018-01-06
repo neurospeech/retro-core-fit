@@ -12,7 +12,7 @@ namespace RetroCoreFit
 {
     public class BaseService {
 
-        public string BaseUrl { get; set; }
+        public Uri BaseUrl { get; set; }
 
         internal HttpClient client;
 
@@ -43,12 +43,6 @@ namespace RetroCoreFit
 
         protected virtual async Task<T> InvokeAsync<T>(HttpMethod method, string path, IEnumerable<RestParameter> plist)
         {
-            if (BaseUrl != null) {
-                if (!path.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && !path.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) {
-                    path = BaseUrl + path;
-                }
-            }
-
             HttpContent content = null;
 
             Dictionary<string, string> headers = null;
@@ -130,6 +124,12 @@ namespace RetroCoreFit
 
                 }
 
+            }
+
+            if (BaseUrl != null)
+            {
+                Uri uri = new Uri(BaseUrl, path);
+                path = uri.ToString();
             }
 
             HttpRequestMessage request = new HttpRequestMessage(method, path);

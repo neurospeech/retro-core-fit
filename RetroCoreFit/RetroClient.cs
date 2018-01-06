@@ -1,14 +1,17 @@
-﻿namespace RetroCoreFit
+﻿using System;
+using System.Net.Http;
+
+namespace RetroCoreFit
 {
+
     public class RetroClient
     {
-    }
 
-    public struct RestParameter {
-
-        public RestAttribute Type { get; set; }
-
-        public object Value { get; set; }
+        public static T Create<T, TBase>(Uri baseUrl, HttpClient client = null)
+            where T:class
+        {
+            return InterfaceBuilder.Instance.Build<T>(baseUrl, client, typeof(T));
+        }
 
     }
 

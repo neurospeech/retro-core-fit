@@ -25,6 +25,13 @@ namespace RetroCoreFit
         }
     }
 
+    //[System.AttributeUsage(AttributeTargets.Interface, Inherited = false, AllowMultiple = true)]
+    //public sealed class BaseUrlAttribute : NamedAttribute {
+    //    public BaseUrlAttribute(string name) : base(name)
+    //    {
+    //    }
+    //}
+
     public abstract class HttpMethodAttribute : NamedAttribute
     {
         public HttpMethodAttribute(HttpMethod method, string path) : base(path)
@@ -65,14 +72,6 @@ namespace RetroCoreFit
     public sealed class DeleteAttribute : HttpMethodAttribute
     {
         public DeleteAttribute(string name) : base(HttpMethod.Delete, name)
-        {
-        }
-    }
-
-    [System.AttributeUsage(AttributeTargets.Interface, Inherited = false, AllowMultiple = true)]
-    public sealed class BaseUrlAttribute : NamedAttribute
-    {
-        public BaseUrlAttribute(string name) : base(name)
         {
         }
     }

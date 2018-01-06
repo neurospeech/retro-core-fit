@@ -8,19 +8,20 @@ using System.Reflection.Emit;
 
 namespace RetroCoreFit
 {
+
+
     public class InterfaceBuilder
     {
+        private InterfaceBuilder()
+        {
+
+        }
+
+        public static InterfaceBuilder Instance = new InterfaceBuilder();
 
         private Dictionary<Type, object> services = new Dictionary<Type, object>();
 
-        public T Build<T, BaseServiceType>(HttpClient client = null)
-            where BaseServiceType: BaseService
-            where T:class
-        {
-            return Build<T>(null, typeof(BaseServiceType));
-        }
-
-        public T Build<T>(HttpClient client = null, Type serviceType = null)
+        public T Build<T>(Uri baseUri, HttpClient client = null, Type serviceType = null)
             where T: class
         {
             Type type = typeof(T);
@@ -31,6 +32,7 @@ namespace RetroCoreFit
             serviceInterface.client = client ?? new HttpClient();
             serviceInterface.interfaceType = type;
             services[type] = serviceInterface;
+            serviceInterface.BaseUrl = baseUri;
             return serviceInterface as T;
         }
 
