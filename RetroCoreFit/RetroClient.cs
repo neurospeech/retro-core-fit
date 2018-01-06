@@ -10,7 +10,7 @@ namespace RetroCoreFit
         public static T Create<T, TBase>(Uri baseUrl, HttpClient client = null)
             where T:class
         {
-            return InterfaceBuilder.Instance.Build<T>(baseUrl, client, typeof(T));
+            return InterfaceBuilder.Instance.Build<T>(baseUrl, client, typeof(TBase));
         }
 
     }
