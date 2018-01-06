@@ -73,7 +73,7 @@ namespace RetroCoreFit
                             path += "?";
                         }
 
-                        path += $"{q.Name}={Uri.EscapeDataString(rp.Value?.ToString())}&"; 
+                        path += $"{q.Name}={Uri.EscapeDataString(rp.Value.ToString())}&"; 
 
                         break;
 
