@@ -101,6 +101,9 @@ namespace RetroCoreFit
                             case byte[] d:
                                 mfd.Add(new ByteArrayContent(d), ma.Name);
                                 break;
+                            case Stream s:
+                                mfd.Add(new StreamContent(s), ma.Name);
+                                break;
                             default:
                                 throw new NotSupportedException();
                         }
@@ -116,6 +119,9 @@ namespace RetroCoreFit
                                 break;
                             case byte[] d:
                                 mfd.Add(new ByteArrayContent(d), ma.Name, ma.FileName);
+                                break;
+                            case Stream s:
+                                mfd.Add(new StreamContent(s), ma.Name, ma.FileName);
                                 break;
                             default:
                                 throw new NotSupportedException();
