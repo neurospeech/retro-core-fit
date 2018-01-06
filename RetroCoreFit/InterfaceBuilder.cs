@@ -97,7 +97,7 @@ namespace RetroCoreFit
                 var httpMethod = method.GetCustomAttribute<HttpMethodAttribute>();
 
                 string plist = string.Join(",", method.GetParameters().Select(x => x.ParameterType.FullName));
-                string uniqueName = $"{httpMethod.Method.Method}::{httpMethod.Name}";
+                string uniqueName = $"{method.Name}:{plist}";
 
                 List<RestAttribute> rplist = new List<RestAttribute>();
 
