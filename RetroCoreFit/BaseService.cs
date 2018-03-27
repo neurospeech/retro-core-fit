@@ -187,7 +187,7 @@ namespace RetroCoreFit
 
             string error = await response.Content.ReadAsStringAsync();
 
-            throw new HttpRequestException(error);
+            throw new HttpRequestException(path + "\r\n" + error);
         }
 
         protected virtual T DecodeResult<T>(string text)
