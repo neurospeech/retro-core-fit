@@ -19,6 +19,13 @@ public interface IBackendService {
 
     [Post("/location/{ip}")]
     Task<IPInfo> SaveLocationInfoAsync([Body] IPInfo info);
+    
+    // retrive http response for detailed response
+    [Get("/video/{id}.mp4")]
+    Task<HttpResponseMessage> GetRawResponse([Query("id")] string id);
+    
+    [Get("/voice/{id}.mp3")]
+    Task<byte[]> GetByteArray([Query("id")] string id);
 }
 
 ```
