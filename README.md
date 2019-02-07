@@ -1,3 +1,5 @@
+## Moved to https://github.com/neurospeech/asp-net-core-extensions
+
 # Retrofit Core
 
 1. No build step
