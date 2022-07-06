@@ -125,6 +125,15 @@ namespace RetroCoreFit
     }
 
     [AttributeUsage(AttributeTargets.Parameter)]
+    public sealed class CancelAttribute : ParamAttribute
+    {
+        public CancelAttribute()
+        {
+
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class CookieAttribute : ParamAttribute
     {
         public CookieAttribute()
@@ -168,4 +177,12 @@ namespace RetroCoreFit
         public string FileName { get; set; }
     }
 
+    [AttributeUsage(AttributeTargets.Parameter)]
+    public sealed class FormAttribute : ParamAttribute
+    {
+        public FormAttribute(string name) : base(name)
+        {
+
+        }
+    }
 }

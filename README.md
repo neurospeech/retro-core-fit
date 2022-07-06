@@ -1,5 +1,3 @@
-## Moved to https://github.com/neurospeech/asp-net-core-extensions
-
 # Retrofit Core
 
 1. No build step
@@ -20,14 +18,30 @@ public interface IBackendService {
     Task<IPInfo> GetLocationInfoAsync([Path("ip")] string ip);
 
     [Post("/location/{ip}")]
-    Task<IPInfo> SaveLocationInfoAsync([Body] IPInfo info);
-    
-    // retrive http response for detailed response
-    [Get("/video/{id}.mp4")]
-    Task<HttpResponseMessage> GetRawResponse([Query("id")] string id);
-    
+    Task<IPInfo> SaveLocationInfoAsync([Path("ip")] string ip, [Body] IPInfo info);
+        
     [Get("/voice/{id}.mp3")]
-    Task<byte[]> GetByteArray([Query("id")] string id);
+    Task<byte[]> GetByteArrayAsync([Query("id")] string id);
+    
+    // Response Object with Header
+    [Get("/projects")]
+    Task<GitLabResponse<GitLabProject>> GetProjectsAsync();
+
+
+    // Retrieve http response for detailed response.
+    // HttpResponseMessage is not disposed, it is responsibility of caller
+    // to dispose the message (which will close open network streams)
+    // This will not throw an error message if there was HTTP Error.
+    [Get("/video/{id}.mp4")]
+    Task<HttpResponseMessage> GetRawResponseAsync([Query("id")] string id);
+
+}
+
+public class GitLabResponse<T>: ApiResponse<T[]> {
+
+   [Header("x-total-pages")]
+   public int TotalPages {get;set;}
+
 }
 
 ```

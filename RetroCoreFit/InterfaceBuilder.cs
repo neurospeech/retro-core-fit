@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Net.Http;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading;
 
 namespace RetroCoreFit
 {
@@ -32,7 +33,10 @@ namespace RetroCoreFit
             serviceInterface.client = client ?? new HttpClient();
             serviceInterface.interfaceType = type;
             services[type] = serviceInterface;
-            serviceInterface.BaseUrl = baseUri;
+            if (baseUri != null)
+            {
+                serviceInterface.BaseUrl = baseUri;
+            }
             return serviceInterface as T;
         }
 
@@ -48,13 +52,13 @@ namespace RetroCoreFit
                 throw new ArgumentException($"ServiceType must derive from class {nameof(BaseService)}");
 
             assemblyBuilder = assemblyBuilder ?? AssemblyBuilder.DefineDynamicAssembly(
-                new System.Reflection.AssemblyName("RetroCoreFit2"), AssemblyBuilderAccess.RunAndCollect);
+                new System.Reflection.AssemblyName($"RetroCoreFit2_{DateTime.UtcNow.Ticks}"), AssemblyBuilderAccess.RunAndCollect);
             moduleBuilder = moduleBuilder ?? assemblyBuilder.DefineDynamicModule("RetroCoreFit2");
 
             Dictionary<string, RestCall> methods = new Dictionary<string, RestCall>();
 
             TypeBuilder typeBuilder = moduleBuilder.DefineType(
-                "A._" + type.Name, 
+                $"A._{type.Name}_{DateTime.UtcNow.Ticks}", 
                 System.Reflection.TypeAttributes.Public | TypeAttributes.Class);
 
             typeBuilder.SetParent(serviceType);
@@ -123,6 +127,11 @@ namespace RetroCoreFit
                         }
                     }
 
+                    if (ra == null && mp.ParameterType == typeof(CancellationToken))
+                    {
+                        ra = new CancelAttribute();
+                    }
+
                     rplist.Add(ra ?? throw 
                         new InvalidOperationException($"Parameter must be decorated with Query, Form, Header, Cookie, Path, Body or MultipartBody"));
 
@@ -153,7 +162,7 @@ namespace RetroCoreFit
 
             }
 
-            BaseService si = Activator.CreateInstance(typeBuilder.CreateType()) as BaseService;
+            BaseService si = Activator.CreateInstance(typeBuilder.CreateTypeInfo()) as BaseService;
             si.Methods = methods;
             si.Headers = headerList.ToArray();
             return si;
