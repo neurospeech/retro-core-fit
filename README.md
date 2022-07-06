@@ -35,10 +35,24 @@ public interface IBackendService {
     [Get("/video/{id}.mp4")]
     Task<HttpResponseMessage> GetRawResponseAsync([Query("id")] string id);
 
+    // Multi Part Form for uploads...
+    [Post("/upload")]
+    Task<HttpResponseMessage> UploadFile(
+        // other form element items
+        [Multipart("name")] string attachmentName,
+
+        // it can accept stream
+        [MultipartFile("file1")]  Stream fileStream,
+
+        // it can accept HttpContent which may contain content type
+        [MultipartFile("file2")]  HttpContent someOtherContent
+        );
+
 }
 
 public class GitLabResponse<T>: ApiResponse<T[]> {
 
+   // set by RetroClient when response is received
    [Header("x-total-pages")]
    public int TotalPages {get;set;}
 
@@ -52,3 +66,4 @@ public class GitLabResponse<T>: ApiResponse<T[]> {
     var client = RetroClient.Create<IBackendService, BaseService>( new Uri("base url...") , httpClient);
 
 ```
+

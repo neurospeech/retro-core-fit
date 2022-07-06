@@ -224,6 +224,9 @@ namespace RetroCoreFit
                             case Stream s:
                                 mfd.Add(new StreamContent(s), ma.Name);
                                 break;
+                            case HttpContent httpContent:
+                                mfd.Add(httpContent);
+                                break;
                             default:
                                 throw new NotSupportedException();
                         }
