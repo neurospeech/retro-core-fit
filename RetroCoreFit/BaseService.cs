@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
@@ -14,48 +13,6 @@ using System.Threading.Tasks;
 
 namespace RetroCoreFit
 {
-    public class ApiException : HttpException
-    {
-        public JToken Details { get; }
-
-        public ApiException(
-            string path,
-            HttpStatusCode statusCode,
-            string message,
-            JToken details)
-            : base(path, statusCode, message)
-        {
-            this.Details = details;
-        }
-
-        public override string ToString()
-        {
-            var error = $"Status: {StatusCode}, Error = {Message}\r\nUrl: {this.Path}\r\n{Details.ToString(Formatting.Indented)}\r\n{this.StackTrace}";
-            return error;
-        }
-    }
-
-    public class HttpException : Exception
-    {
-        public string Path { get; }
-
-        public HttpStatusCode StatusCode { get; }
-        public HttpException(
-            string path,
-            HttpStatusCode statusCode,
-            string content)
-            : base(content)
-        {
-            this.Path = path;
-            this.StatusCode = statusCode;
-        }
-
-        public override string ToString()
-        {
-            var error = $"Status: {StatusCode}, Error = {Message}\r\nUrl: {this.Path}\r\n{this.StackTrace}";
-            return error;
-        }
-    }
 
     public class BaseService {
 
@@ -104,6 +61,7 @@ namespace RetroCoreFit
         protected Task<T> PutAsync<T>(string path, params RestParameter[] args) =>
             InvokeAsync<T>(HttpMethod.Put, path, args);
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected virtual async Task<T> InvokeAsync<T>(HttpMethod method, string path, IEnumerable<RestParameter> plist)
         {
             HttpContent content = null;

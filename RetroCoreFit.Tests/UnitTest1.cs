@@ -1,25 +1,26 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
 
 namespace RetroCoreFit.Tests
 {
+    [TestClass]
     public class UnitTest1
     {
-        [Fact]
+        [TestMethod]
         public async Task Test1Async()
         {
 
             var api = RetroClient.Create<IApi,TestBaseService>(new Uri("https://m.800casting.com"),new HttpClient(new TestHttpClient()));
 
-            Assert.Null(api.Authorize);
+            Assert.IsNull(api.Authorize);
 
             api.Authorize = "a";
 
-            Assert.Equal("a", api.Authorize);
+            Assert.AreEqual("a", api.Authorize);
 
             var r = await api.UpdateAsync(1,new Product { }, " all , ackava@gmail.com");
 
