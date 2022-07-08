@@ -46,6 +46,19 @@ namespace RetroCoreFit
                     var responseText = await r.Content.ReadAsStringAsync();
                     throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, null);
                 }
+
+                if (typeof(IApiResponse).IsAssignableFrom(typeof(T)))
+                {
+                    var tx = (Activator.CreateInstance<T>() as IApiResponse)!;
+                    var model = await System.Text.Json.JsonSerializer.DeserializeAsync(
+                    await r.Content.ReadAsStreamAsync(),
+                    tx.GetModelType(),
+                    options,
+                    cancellationToken: cancellation);
+                    tx.Initialize(r, model);
+                    return (T)tx;
+                }
+
                 return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(
                     await r.Content.ReadAsStreamAsync(), 
                     options,
@@ -53,115 +66,98 @@ namespace RetroCoreFit
             }
         }
 
-        public static async Task<ApiResponse<T>?> GetResponseWithHeadersAsync<T>(
-            this RequestBuilder request, 
-            HttpClient client,
-            CancellationToken cancellation = default,
-            System.Text.Json.JsonSerializerOptions? options = null)
-        {
-            var req = request.Build();
-            using (var r = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead))
-            {
-                if (!r.IsSuccessStatusCode)
-                {
-                    var responseText = await r.Content.ReadAsStringAsync();
-                    throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, null);
-                }
-                var model = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(
-                    await r.Content.ReadAsStreamAsync(),
-                    options,
-                    cancellationToken: cancellation);
-                var result = new ApiResponse<T>();
-                result.Initialize(r, model);
-                return result;
-            }
-        }
+        //public static async Task<ApiResponse<T>?> GetResponseWithHeadersAsync<T>(
+        //    this RequestBuilder request, 
+        //    HttpClient client,
+        //    CancellationToken cancellation = default,
+        //    System.Text.Json.JsonSerializerOptions? options = null)
+        //{
+        //    var req = request.Build();
+        //    using (var r = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead))
+        //    {
+        //        if (!r.IsSuccessStatusCode)
+        //        {
+        //            var responseText = await r.Content.ReadAsStringAsync();
+        //            throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, null);
+        //        }
+        //        var model = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(
+        //            await r.Content.ReadAsStreamAsync(),
+        //            options,
+        //            cancellationToken: cancellation);
+        //        var result = new ApiResponse<T>();
+        //        result.Initialize(r, model);
+        //        return result;
+        //    }
+        //}
 
     }
 
+    public delegate HttpRequestMessage BuilderDelegate(HttpRequestMessage msg);
+
     public class RequestBuilder
     {
-        private List<Func<HttpRequestMessage, HttpRequestMessage>> funcs = new();
+        protected BuilderDelegate Handler;
 
-        protected RequestBuilder(Func<HttpRequestMessage, HttpRequestMessage> fx)
-        {
-            funcs.Add(fx);
-        }
+        public HttpRequestMessage Build() => Handler(null);
 
-        private RequestBuilder(
-            List<Func<HttpRequestMessage, HttpRequestMessage>> funcs,
-            Func<HttpRequestMessage, HttpRequestMessage> func)
+        protected static T Append<T>(RequestBuilder @this, BuilderDelegate fx)
+            where T: RequestBuilder, new()
         {
-            this.funcs = new(funcs)
-            {
-                func
+            return new T() { 
+                Handler = (prev) => fx(@this.Handler(prev))
             };
         }
 
-        protected RequestBuilder Append(Func<HttpRequestMessage, HttpRequestMessage> func)
+        public RequestBuilder Query(string name, string value, bool encode = true)
         {
-            return new RequestBuilder(funcs, func);
-        }
-
-        public static implicit operator HttpRequestMessage(RequestBuilder builder)
-        {
-            return builder.Build();
-        }
-
-        public HttpRequestMessage Build()
-        {
-            HttpRequestMessage msg = null!;
-            foreach(var f in funcs)
-            {
-                msg = f(msg);
-            }
-            return msg;
-        }
-
-        public static RequestBuilder Post(string url) => new RequestBuilder((_) => new HttpRequestMessage(HttpMethod.Post, url));
-
-        public static RequestBuilder Put(string url) => new RequestBuilder((_) => new HttpRequestMessage(HttpMethod.Put, url));
-
-        public static RequestBuilder Get(string url) => new RequestBuilder((_) => new HttpRequestMessage(HttpMethod.Get, url));
-
-        public static RequestBuilder Patch(string url) => new RequestBuilder((_) => new HttpRequestMessage(new HttpMethod("PATCH"), url));
-
-        public static RequestBuilder Delete(string url) => new RequestBuilder((_) => new HttpRequestMessage(HttpMethod.Delete, url));
-
-
-        public RequestBuilder Body<T>(T body, System.Text.Json.JsonSerializerOptions? options = null)
-        {
-            return this.Append(@this => { 
-                if (@this.Content != null)
-                {
-                    throw new ArgumentException($"Body is already set");
-                }
-                @this.Content = new StringContent(
-                    System.Text.Json.JsonSerializer.Serialize(body, options),
-                    System.Text.Encoding.UTF8);
-                return @this;
-            });
-        }
-
-        public RequestBuilder Query(string name, string value)
-        {
-            return this.Append(@this => {
+            return Append<RequestBuilder>(this, @this => {
                 var url = @this.RequestUri.ToString();
+                if (encode)
+                {
+                    value = value.EscapeUriComponent();
+                }
                 if (url.IndexOf('?') == -1)
                 {
-                    url += $"?{name}={Uri.EscapeUriString(value)}";
-                } else
+                    url += $"?{name.EscapeUriComponent()}={value}";
+                }
+                else
                 {
-                    url += $"{name}={Uri.EscapeUriString(value)}";
+                    url += $"{name.EscapeUriComponent()}={value}";
                 }
                 @this.RequestUri = new Uri(url, UriKind.RelativeOrAbsolute);
                 return @this;
             });
         }
 
+        public RequestBuilder Query(string name, long value)
+        {
+            return Query(name, value.ToString(), false);
+        }
+
+        public RequestBuilder Query(string name, int value)
+        {
+            return Query(name, value.ToString(), false);
+        }
+
+        public RequestBuilder Query(string name, bool value)
+        {
+            return Query(name, value ? "true" : "false", false);
+        }
+
+
+        public RequestBuilder Query(string name, double value)
+        {
+            return Query(name, value.ToString());
+        }
+
+        public RequestBuilder Query(string name, decimal value)
+        {
+            return Query(name, value.ToString());
+        }
+
         public RequestBuilder Path(string name, string? value, bool encode = false)
         {
-            return this.Append(@this =>
+            return Append<RequestBuilder>(this, @this =>
             {
                 value ??= "";
                 if (encode && value.Length > 0)
@@ -175,87 +171,47 @@ namespace RetroCoreFit
             });
         }
 
-        public RequestBuilder Form(string name, string value)
-        {
-            return this.Append(@this =>
-            {
-                if(@this.Content is not FormContent fc)
-                {
-                    @this.Content = fc = new FormContent();
-                }
-                fc.Add(name, value);
-                return @this;
-            });
-        }
+        public BodyBuilder Post() => Append<BodyBuilder>(this, (@this) => {
+            @this.Method = HttpMethod.Post;
+            return @this;
+        });
 
-        public RequestBuilder Multipart(string name, string value)
-        {
-            return this.Append(@this =>
-            {
-                if (@this.Content is not MultipartFormDataContent mfd)
-                {
-                    @this.Content = mfd = new MultipartFormDataContent();
-                }
-                mfd.Add(new StringContent(value), name);
-                return @this;
-            });
-        }
+        public BodyBuilder Put() => Append<BodyBuilder>(this, (@this) => {
+            @this.Method = HttpMethod.Put;
+            return @this;
+        });
 
-        public RequestBuilder MultipartFile(string name, string fileContent, string? contentType = null)
-        {
-            return this.Append(@this =>
-            {
-                if (@this.Content is not MultipartFormDataContent mfd)
-                {
-                    @this.Content = mfd = new MultipartFormDataContent();
-                }
-                mfd.Add(new StringContent(fileContent).WithContentType(contentType), name);
-                return @this;
-            });
-        }
+        public BodyBuilder Patch() => Append<BodyBuilder>(this, (@this) => {
+            @this.Method = new HttpMethod("PATCH");
+            return @this;
+        });
+        public BodyBuilder Delete() => Append<BodyBuilder>(this, (@this) => {
+            @this.Method = HttpMethod.Delete;
+            return @this;
+        });
 
-        public RequestBuilder MultipartFile(string name, byte[] fileContent, string? contentType = null)
-        {
-            return this.Append(@this =>
-            {
-                if (@this.Content is not MultipartFormDataContent mfd)
-                {
-                    @this.Content = mfd = new MultipartFormDataContent();
-                }
-                mfd.Add(new ByteArrayContent(fileContent).WithContentType(contentType), name);
-                return @this;
-            });
-        }
+        public static BodyBuilder Post(string url) => new BodyBuilder {
+            Handler = (_) => new HttpRequestMessage(HttpMethod.Post, url)
+        };
 
-        public RequestBuilder MultipartFile(string name, Stream fileContent, string? contentType = null)
+        public static BodyBuilder Put(string url) => new BodyBuilder
         {
-            return this.Append(@this =>
-            {
-                if (@this.Content is not MultipartFormDataContent mfd)
-                {
-                    @this.Content = mfd = new MultipartFormDataContent();
-                }
-                mfd.Add(new StreamContent(fileContent).WithContentType(contentType), name);
-                return @this;
-            });
-        }
+            Handler = (_) => new HttpRequestMessage(HttpMethod.Put, url)
+        };
 
-        public RequestBuilder MultipartFile(string name, HttpContent fileContent)
+        public static BodyBuilder Patch(string url) => new BodyBuilder
         {
-            return this.Append(@this =>
-            {
-                if (@this.Content is not MultipartFormDataContent mfd)
-                {
-                    @this.Content = mfd = new MultipartFormDataContent();
-                }
-                mfd.Add(fileContent, name);
-                return @this;
-            });
-        }
+            Handler = (_) => new HttpRequestMessage(new HttpMethod("PATCH"), url)
+        };
+        public static BodyBuilder Delete(string url) => new BodyBuilder
+        {
+            Handler = (_) => new HttpRequestMessage(HttpMethod.Delete, url)
+        };
+
 
         public RequestBuilder Header(string name, string value, bool validate = false)
         {
-            return this.Append(@this =>
+            return Append<RequestBuilder>(this, @this =>
             {
                 if (validate)
                 {
@@ -266,12 +222,12 @@ namespace RetroCoreFit
                     @this.Headers.TryAddWithoutValidation(name, value);
                 }
                 return @this;
-            });            
+            });
         }
 
         public RequestBuilder Host(string host, int? port = null)
         {
-            return this.Append(@this =>
+            return Append<RequestBuilder>(this, @this =>
             {
                 var uri = new UriBuilder(@this.RequestUri)
                 {
@@ -288,7 +244,7 @@ namespace RetroCoreFit
 
         public RequestBuilder Scheme(string scheme)
         {
-            return this.Append(@this =>
+            return Append<RequestBuilder>(this, @this =>
             {
                 var uri = new UriBuilder(@this.RequestUri)
                 {
@@ -298,7 +254,133 @@ namespace RetroCoreFit
                 return @this;
             });
         }
+
+        public class BodyBuilder: RequestBuilder
+        {
+            public BodyBuilder Body<T>(T body, System.Text.Json.JsonSerializerOptions? options = null)
+            {
+                return Append<BodyBuilder>(this, @this => {
+                    if (@this.Content != null)
+                    {
+                        throw new ArgumentException($"Body is already set");
+                    }
+                    @this.Content = new StringContent(
+                        System.Text.Json.JsonSerializer.Serialize(body, options),
+                        System.Text.Encoding.UTF8);
+                    return @this;
+                });
+            }
+
+
+            public BodyBuilder Form(string name, string value, bool encode = true)
+            {
+                return Append<BodyBuilder>(this, @this =>
+                {
+                    if (@this.Content is not FormContent fc)
+                    {
+                        @this.Content = fc = new FormContent();
+                    }
+                    fc.Add(name, value, encode);
+                    return @this;
+                });
+            }
+
+            public BodyBuilder Form(string name, long value)
+            {
+                return Form(name, value.ToString(), false);
+            }
+
+            public BodyBuilder Form(string name, int value)
+            {
+                return Form(name, value.ToString(), false);
+            }
+            public BodyBuilder Form(string name, bool value)
+            {
+                return Form(name, value ? "true" : "false", false);
+            }
+
+            public BodyBuilder Form(string name, double value)
+            {
+                return Form(name, value.ToString());
+            }
+            public BodyBuilder Form(string name, decimal value)
+            {
+                return Form(name, value.ToString());
+            }
+
+            public BodyBuilder Multipart(string name, string value)
+            {
+                return Append<BodyBuilder>(this, @this =>
+                {
+                    if (@this.Content is not MultipartFormDataContent mfd)
+                    {
+                        @this.Content = mfd = new MultipartFormDataContent();
+                    }
+                    mfd.Add(new StringContent(value), name);
+                    return @this;
+                });
+            }
+
+            public BodyBuilder MultipartFile(string name, string fileContent, string? contentType = null)
+            {
+                return Append<BodyBuilder>(this, @this =>
+                {
+                    if (@this.Content is not MultipartFormDataContent mfd)
+                    {
+                        @this.Content = mfd = new MultipartFormDataContent();
+                    }
+                    mfd.Add(new StringContent(fileContent).WithContentType(contentType), name);
+                    return @this;
+                });
+            }
+
+            public BodyBuilder MultipartFile(string name, byte[] fileContent, string? contentType = null)
+            {
+                return Append<BodyBuilder>(this,@this =>
+                {
+                    if (@this.Content is not MultipartFormDataContent mfd)
+                    {
+                        @this.Content = mfd = new MultipartFormDataContent();
+                    }
+                    mfd.Add(new ByteArrayContent(fileContent).WithContentType(contentType), name);
+                    return @this;
+                });
+            }
+
+            public BodyBuilder MultipartFile(string name, Stream fileContent, string? contentType = null)
+            {
+                return Append<BodyBuilder>(this, @this =>
+                {
+                    if (@this.Content is not MultipartFormDataContent mfd)
+                    {
+                        @this.Content = mfd = new MultipartFormDataContent();
+                    }
+                    mfd.Add(new StreamContent(fileContent).WithContentType(contentType), name);
+                    return @this;
+                });
+            }
+
+            public BodyBuilder MultipartFile(string name, HttpContent fileContent)
+            {
+                return Append<BodyBuilder>(this, @this =>
+                {
+                    if (@this.Content is not MultipartFormDataContent mfd)
+                    {
+                        @this.Content = mfd = new MultipartFormDataContent();
+                    }
+                    mfd.Add(fileContent, name);
+                    return @this;
+                });
+            }
+        }
+        public static RequestBuilder Get(string baseUrl) => 
+            new RequestBuilder() { Handler = (_) => new HttpRequestMessage(HttpMethod.Get, baseUrl) };
+
     }
+
+
+
+
 
     public class FormContent : HttpContent
     {
@@ -326,23 +408,13 @@ namespace RetroCoreFit
                 }
                 else
                     notFirst = true;
-                sw.Write(Encode(pair.Key));
+                sw.Write(pair.Key);
                 sw.Write('=');
-                sw.Write(Encode(pair.Value));
+                sw.Write(pair.Value);
             }
             sw.Flush();
             ms.Seek(0, SeekOrigin.Begin);
             return ms.ToArray();
-        }
-
-        private static string Encode(string data)
-        {
-            if (String.IsNullOrEmpty(data))
-            {
-                return String.Empty;
-            }
-            // Escape spaces as '+'.
-            return Uri.EscapeDataString(data).Replace("%20", "+");
         }
 
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
@@ -357,9 +429,26 @@ namespace RetroCoreFit
             return true;
         }
 
-        public void Add(string name, string value)
+        public void Add(string name, string value, bool encode = true)
         {
+            name = name.EscapeUriComponent();
+            if (encode)
+            {
+                value = value.EscapeUriComponent();
+            }
             this.values.Add(new KeyValuePair<string, string>(name, value));
+        }
+    }
+
+    internal static class UrlExtensions
+    {
+        public static string EscapeUriComponent(this string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+            return Uri.UnescapeDataString(value).Replace("%20", "+");
         }
     }
 }
