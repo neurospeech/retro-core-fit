@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace RetroCoreFit
 {
-    internal static class HttpExtensions
+    public static class HttpExtensions
     {
-        public static T WithContentType<T>(this T content, string? contentType)
+        internal static T WithContentType<T>(this T content, string? contentType)
             where T: HttpContent
         {
             if (contentType != null)
@@ -98,7 +98,7 @@ namespace RetroCoreFit
     {
         protected BuilderDelegate Handler;
 
-        public HttpRequestMessage Build() => Handler(null);
+        public HttpRequestMessage Build() => Handler(null!);
 
         protected static T Append<T>(RequestBuilder @this, BuilderDelegate fx)
             where T: RequestBuilder, new()
