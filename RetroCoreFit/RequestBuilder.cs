@@ -234,7 +234,11 @@ namespace RetroCoreFit
             });
         }
 
-        public RequestBuilder MultipartFile(string name, string fileContent, string? contentType = null)
+        public RequestBuilder MultipartFile(
+            string name,
+            string fileContent,
+            string? contentType = null,
+            string fileName = "file.dat")
         {
             return Append(this, @this =>
             {
@@ -242,12 +246,16 @@ namespace RetroCoreFit
                 {
                     @this.Content = mfd = new MultipartFormDataContent();
                 }
-                mfd.Add(new StringContent(fileContent).WithContentType(contentType), name);
+                mfd.Add(new StringContent(fileContent).WithContentType(contentType), name, fileName);
                 return @this;
             });
         }
 
-        public RequestBuilder MultipartFile(string name, byte[] fileContent, string? contentType = null)
+        public RequestBuilder MultipartFile(
+            string name,
+            byte[] fileContent,
+            string? contentType = null,
+            string fileName = "file.dat")
         {
             return Append(this,@this =>
             {
@@ -255,12 +263,16 @@ namespace RetroCoreFit
                 {
                     @this.Content = mfd = new MultipartFormDataContent();
                 }
-                mfd.Add(new ByteArrayContent(fileContent).WithContentType(contentType), name);
+                mfd.Add(new ByteArrayContent(fileContent).WithContentType(contentType), name, fileName);
                 return @this;
             });
         }
 
-        public RequestBuilder MultipartFile(string name, Stream fileContent, string? contentType = null)
+        public RequestBuilder MultipartFile(
+            string name,
+            Stream fileContent,
+            string? contentType = null,
+            string fileName = "file.dat")
         {
             return Append(this, @this =>
             {
@@ -268,12 +280,13 @@ namespace RetroCoreFit
                 {
                     @this.Content = mfd = new MultipartFormDataContent();
                 }
-                mfd.Add(new StreamContent(fileContent).WithContentType(contentType), name);
+                mfd.Add(new StreamContent(fileContent).WithContentType(contentType), name, fileName);
                 return @this;
             });
         }
 
-        public RequestBuilder MultipartFile(string name, HttpContent fileContent)
+        public RequestBuilder MultipartFile(string name, HttpContent fileContent,
+            string fileName = "file.dat")
         {
             return Append(this, @this =>
             {
@@ -281,7 +294,7 @@ namespace RetroCoreFit
                 {
                     @this.Content = mfd = new MultipartFormDataContent();
                 }
-                mfd.Add(fileContent, name);
+                mfd.Add(fileContent, name, fileName);
                 return @this;
             });
         }
