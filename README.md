@@ -3,6 +3,7 @@
 1. No build step
 2. Dynamic Service Proxy generator
 3. Support for Header as property
+4. Generic RequestBuilder
 
 # Example
 ```c#
