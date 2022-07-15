@@ -179,7 +179,7 @@ namespace RetroCoreFit
                 }
                 @this.Content = new StringContent(
                     System.Text.Json.JsonSerializer.Serialize(body, options),
-                    System.Text.Encoding.UTF8);
+                    System.Text.Encoding.UTF8, "application/json");
                 return @this;
             });
         }
