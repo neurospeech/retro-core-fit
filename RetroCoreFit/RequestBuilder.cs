@@ -17,7 +17,7 @@ namespace RetroCoreFit
             this.Value = value;
         }
 
-        public static explicit operator Literal(string s) => new Literal(s);
+        public static implicit operator Literal(string s) => new Literal(s);
 
         public static Literal String(string s) => new Literal(s);
     }
