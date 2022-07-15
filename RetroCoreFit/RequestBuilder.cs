@@ -8,6 +8,20 @@ using System.Text;
 namespace RetroCoreFit
 {
 
+    public readonly struct Literal
+    {
+        public readonly string Value;
+
+        public Literal(string value)
+        {
+            this.Value = value;
+        }
+
+        public static explicit operator Literal(string s) => new Literal(s);
+
+        public static Literal String(string s) => new Literal(s);
+    }
+
     public delegate HttpRequestMessage BuilderDelegate(HttpRequestMessage msg);
 
     public class RequestBuilder
@@ -109,20 +123,27 @@ namespace RetroCoreFit
             Handler = (_) => new HttpRequestMessage(HttpMethod.Post, url)
         };
 
+        public static RequestBuilder Post(FormattableString url) => Post(url.EscapeUriComponent());
+
         public static RequestBuilder Put(string url) => new RequestBuilder
         {
             Handler = (_) => new HttpRequestMessage(HttpMethod.Put, url)
         };
 
+        public static RequestBuilder Put(FormattableString url) => Put(url.EscapeUriComponent());
+
         public static RequestBuilder Patch(string url) => new RequestBuilder
         {
             Handler = (_) => new HttpRequestMessage(new HttpMethod("PATCH"), url)
         };
+        public static RequestBuilder Patch(FormattableString url) => Patch(url.EscapeUriComponent());
+
         public static RequestBuilder Delete(string url) => new RequestBuilder
         {
             Handler = (_) => new HttpRequestMessage(HttpMethod.Delete, url)
         };
 
+        public static RequestBuilder Delete(FormattableString url) => Delete(url.EscapeUriComponent());
 
         public RequestBuilder Header(string name, string value, bool validate = false)
         {
@@ -301,6 +322,15 @@ namespace RetroCoreFit
         
         public static RequestBuilder Get(string baseUrl) => 
             new RequestBuilder() { Handler = (_) => new HttpRequestMessage(HttpMethod.Get, baseUrl) };
+
+        public static RequestBuilder Get(FormattableString url) =>
+            new RequestBuilder() { Handler = (_) => new HttpRequestMessage(HttpMethod.Get, url.EscapeUriComponent()) };
+
+        public static RequestBuilder New(string baseUrl) =>
+            new RequestBuilder() { Handler = (_) => new HttpRequestMessage(HttpMethod.Get, baseUrl) };
+
+        public static RequestBuilder New(FormattableString url) =>
+            new RequestBuilder() { Handler = (_) => new HttpRequestMessage(HttpMethod.Get, url.EscapeUriComponent()) };
 
     }
 }
