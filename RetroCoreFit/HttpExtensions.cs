@@ -42,11 +42,12 @@ namespace RetroCoreFit
                     throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, null);
                 }
 
+                using var stream = await r.Content.ReadAsStreamAsync();
                 if (typeof(IApiResponse).IsAssignableFrom(typeof(T)))
                 {
                     var tx = (Activator.CreateInstance<T>() as IApiResponse)!;
                     var model = await System.Text.Json.JsonSerializer.DeserializeAsync(
-                    await r.Content.ReadAsStreamAsync(),
+                    stream,
                     tx.GetModelType(),
                     options,
                     cancellationToken: cancellation);
@@ -55,7 +56,7 @@ namespace RetroCoreFit
                 }
 
                 return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(
-                    await r.Content.ReadAsStreamAsync(), 
+                    stream, 
                     options,
                     cancellationToken: cancellation);
             }
