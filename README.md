@@ -68,3 +68,43 @@ public class GitLabResponse<T>: ApiResponse<T[]> {
 
 ```
 
+# Request Builder
+```c#
+
+    // get request
+    RequestBuilder.Get("/location/{ip}")
+        .Path("ip", ipAddress)
+        .GetResponseAsync<IPInfo>(httpClient);
+
+    // post request
+    RequestBuilder.Post("/location/{ip}")
+        .Path("ip", ipAddress)
+        .Body(info)
+        .GetResponseAsync<IPInfo>(httpClient);
+
+    // get raw response
+    RequestBuilder.Post("/location/{ip}")
+        .Path("ip", ipAddress)
+        .Body(info)
+        .GetResponseAsync(httpClient); // no generics
+
+    // Multipart Upload
+    RequestBuilder.Post("/upload")
+        .Multipart("name", attachmentName)
+        .MultipartFile("file1", fileStream, fileName: "photo.jpg")
+        .GetResponseAsync(httpClient);
+
+    // Get Api Response with Headers...
+    RequestBuilder.Post("/api/v4/projects/{id}")
+        .Path("id", projectId)
+        .GetResponseAsync<GitLabResponse<Project>>(httpClient);
+
+public class GitLabResponse<T>: ApiResponse<T[]> {
+
+    // set by RetroClient when response is received
+    [Header("x-total-pages")]
+    public int TotalPages {get;set;}
+
+}
+
+```
