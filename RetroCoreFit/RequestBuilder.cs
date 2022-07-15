@@ -237,8 +237,8 @@ namespace RetroCoreFit
         public RequestBuilder MultipartFile(
             string name,
             string fileContent,
-            string? contentType = null,
-            string fileName = "file.dat")
+            string fileName = "file.dat",
+            string? contentType = null)
         {
             return Append(this, @this =>
             {
@@ -254,8 +254,8 @@ namespace RetroCoreFit
         public RequestBuilder MultipartFile(
             string name,
             byte[] fileContent,
-            string? contentType = null,
-            string fileName = "file.dat")
+            string fileName = "file.dat",
+            string? contentType = null)
         {
             return Append(this,@this =>
             {
@@ -271,8 +271,8 @@ namespace RetroCoreFit
         public RequestBuilder MultipartFile(
             string name,
             Stream fileContent,
-            string? contentType = null,
-            string fileName = "file.dat")
+            string fileName = "file.dat",
+            string? contentType = null)
         {
             return Append(this, @this =>
             {
