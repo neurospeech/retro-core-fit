@@ -21,6 +21,18 @@ namespace RetroCoreFit.Tests
         }
 
         [TestMethod]
+        public void Escape()
+        {
+            var host = "neurospeech.com";
+            var type = "all";
+            var id = "a b";
+            var post = RequestBuilder.Post($"https://{host}/post/{type}?id={(Escaped)id}").Build();
+            Assert.AreEqual(host, post.RequestUri.Host);
+            Assert.AreEqual("/post/all", post.RequestUri.AbsolutePath);
+            Assert.AreEqual("?id=a+b", post.RequestUri.Query);
+        }
+
+        [TestMethod]
         public void Query()
         {
             var post = RequestBuilder.Post("/");
