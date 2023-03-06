@@ -14,7 +14,15 @@ namespace RetroCoreFit
     {
         protected BuilderDelegate Handler;
 
-        public HttpRequestMessage Build() => Handler(null!);
+        public HttpRequestMessage Build()
+        {
+            var m = Handler(null!);
+            if(m.Content is FormContent fc)
+            {
+                m.Content = new FormUrlEncodedContent(fc.Values);
+            }
+            return m;
+        }
 
         protected static RequestBuilder Append(RequestBuilder @this, BuilderDelegate fx)
         {
@@ -37,7 +45,7 @@ namespace RetroCoreFit
                 }
                 else
                 {
-                    url += $"{name.EscapeUriComponent()}={value}";
+                    url += $"&{name.EscapeUriComponent()}={value}";
                 }
                 @this.RequestUri = new Uri(url, UriKind.RelativeOrAbsolute);
                 return @this;
