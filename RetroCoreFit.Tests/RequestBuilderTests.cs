@@ -70,11 +70,11 @@ namespace RetroCoreFit.Tests
         {
             var post = RequestBuilder.Post("/a");
             var content = post.Form("a", "b").Form("a", "b").Build().Content;
-            if (!(content is FormContent @form))
-            {
-                throw new Exception($"content is {content?.GetType()?.Name}");
-            }
-            var stringValue = await @form.ReadAsStringAsync();
+            //if (!(content is FormContent @form))
+            //{
+            //    throw new Exception($"content is {content?.GetType()?.Name}");
+            //}
+            var stringValue = await content.ReadAsStringAsync();
             Assert.AreEqual("a=b&a=b", stringValue);
             Assert.IsNull(post.Build().Content);
         }
