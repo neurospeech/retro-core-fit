@@ -41,12 +41,8 @@ namespace RetroCoreFit
                     var responseText = await r.Content.ReadAsStringAsync();
                     if (r.Content.Headers.ContentType?.MediaType?.Contains("json") ?? false)
                     {
-                        try {
-                            var token= Newtonsoft.Json.Linq.JToken.Parse(responseText);
-                            throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, token);
-                        } catch (Exception ex) {
-                            
-                        }
+                        var token= Newtonsoft.Json.Linq.JToken.Parse(responseText);
+                        throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, token);
                     }
                     throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, null);
                 }
