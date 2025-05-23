@@ -32,15 +32,33 @@ namespace RetroCoreFit
             HttpClient client,
             CancellationToken cancellation = default,
             System.Text.Json.JsonSerializerOptions? options = null,
-            Action<HttpRequestMessage>? requestLogger = null,
-            Action<HttpResponseMessage>? responseLogger = null
+            Func<HttpRequestMessage, Task>? requestLogger = null,
+            Func<HttpResponseMessage, Task>? responseLogger = null
             )
         {
             var req = request.Build();
-            requestLogger?.Invoke(req);
+            if (requestLogger != null)
+            {
+                try
+                {
+                    await requestLogger(req);
+                } catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(ex);
+                }
+            }
             using(var r = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellation))
             {
-                responseLogger?.Invoke(r);
+                if (responseLogger != null) {
+                    try
+                    {
+                        await responseLogger(r);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine(ex);
+                    }
+                }
                 if (!r.IsSuccessStatusCode)
                 {
                     var responseText = await r.Content.ReadAsStringAsync();
