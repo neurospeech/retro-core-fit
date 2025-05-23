@@ -31,11 +31,16 @@ namespace RetroCoreFit
             this RequestBuilder request,
             HttpClient client,
             CancellationToken cancellation = default,
-            System.Text.Json.JsonSerializerOptions? options = null)
+            System.Text.Json.JsonSerializerOptions? options = null,
+            Action<HttpRequestMessage>? requestLogger = null,
+            Action<HttpResponseMessage>? responseLogger = null
+            )
         {
             var req = request.Build();
+            requestLogger?.Invoke(req);
             using(var r = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellation))
             {
+                responseLogger?.Invoke(r);
                 if (!r.IsSuccessStatusCode)
                 {
                     var responseText = await r.Content.ReadAsStringAsync();
