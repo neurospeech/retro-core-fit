@@ -179,6 +179,14 @@ namespace RetroCoreFit
             });
         }
 
+        public RequestBuilder Content(HttpContent content) {
+            return Append(this, @this =>
+            {
+                @this.Content = content;
+                return @this;
+            });
+        }
+
         public RequestBuilder Body<T>(T body, System.Text.Json.JsonSerializerOptions? options = null, string contentType = "application/json")
         {
             return Append(this, @this => {
