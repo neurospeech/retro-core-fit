@@ -179,7 +179,7 @@ namespace RetroCoreFit
             });
         }
 
-        public RequestBuilder Body<T>(T body, System.Text.Json.JsonSerializerOptions? options = null)
+        public RequestBuilder Body<T>(T body, System.Text.Json.JsonSerializerOptions? options = null, string contentType = "application/json")
         {
             return Append(this, @this => {
                 if (@this.Content != null)
@@ -188,7 +188,7 @@ namespace RetroCoreFit
                 }
                 @this.Content = new StringContent(
                     System.Text.Json.JsonSerializer.Serialize(body, options),
-                    System.Text.Encoding.UTF8, "application/json");
+                    System.Text.Encoding.UTF8, contentType);
                 return @this;
             });
         }
