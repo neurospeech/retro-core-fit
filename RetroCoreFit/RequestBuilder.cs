@@ -4,15 +4,23 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace RetroCoreFit
 {
 
     public delegate HttpRequestMessage BuilderDelegate(HttpRequestMessage msg);
 
+
+    public delegate void RequestBuilderHttpClientLogger(HttpRequestMessage request, HttpResponseMessage response);
+    public delegate ValueTask RequestBuilderHttpClientLoggerAsync(HttpRequestMessage request, HttpResponseMessage response);
+
     public class RequestBuilder
     {
         protected BuilderDelegate Handler;
+
+        protected RequestBuilderHttpClientLoggerAsync? loggerAsync;
 
         public HttpRequestMessage Build()
         {
@@ -24,10 +32,16 @@ namespace RetroCoreFit
             return m;
         }
 
+        private (HttpRequestMessage,RequestBuilderHttpClientLoggerAsync? loggerAsync) BuildWithLogger()
+        {
+            return (Build(),loggerAsync);
+        }
+
         protected static RequestBuilder Append(RequestBuilder @this, BuilderDelegate fx)
         {
             return new RequestBuilder() { 
-                Handler = (prev) => fx(@this.Handler(prev))
+                Handler = (prev) => fx(@this.Handler(prev)),
+                loggerAsync = @this.loggerAsync
             };
         }
 
@@ -315,12 +329,110 @@ namespace RetroCoreFit
                 return @this;
             });
         }
+
+        public RequestBuilder WithLogger(RequestBuilderHttpClientLogger logger)
+        {
+            return new RequestBuilder() { 
+                Handler = this.Handler,
+                loggerAsync = (req, res) => {
+                    logger(req, res);
+                    return default;
+                }
+            };
+        }
+        public RequestBuilder WithAsyncLogger(RequestBuilderHttpClientLoggerAsync loggerAsync)
+        {
+            return new RequestBuilder() { 
+                Handler = this.Handler,
+                loggerAsync = loggerAsync
+            };
+        }
         
         public static RequestBuilder Get(string baseUrl) => 
             new RequestBuilder() { Handler = (_) => new HttpRequestMessage(HttpMethod.Get, baseUrl) };
 
         public static RequestBuilder New(string baseUrl) =>
             new RequestBuilder() { Handler = (_) => new HttpRequestMessage(HttpMethod.Get, baseUrl) };
+
+
+        public Task<HttpResponseMessage> AsResponseMessageAsync(
+            HttpClient client,
+            CancellationToken cancellation = default)
+        {
+            var (req, loggerAsync) = this.BuildWithLogger();
+            if(loggerAsync != null)
+            {
+                return SendAsync(client, req, loggerAsync, HttpCompletionOption.ResponseContentRead, cancellation);
+            }
+            return client.SendAsync(req, HttpCompletionOption.ResponseContentRead, cancellation);
+        }
+
+        public async Task<string> AsTextAsync(
+            HttpClient client,
+            CancellationToken cancellation = default)
+        {
+            var (req, loggerAsync) = this.BuildWithLogger();
+
+            var r = await client.SendAsync(req, HttpCompletionOption.ResponseContentRead, cancellation);
+            if(loggerAsync != null) {
+                await loggerAsync(req, r);
+            }
+            return await r.Content.ReadAsStringAsync();
+        }
+
+
+        private async Task<HttpResponseMessage> SendAsync(
+            HttpClient client,
+            HttpRequestMessage req,
+            RequestBuilderHttpClientLoggerAsync logger,
+            HttpCompletionOption option,
+            CancellationToken cancellationToken)
+        {
+            var r = await client.SendAsync(req, option, cancellationToken);
+            await logger(req, r);
+            return r;
+        }
+
+        public async Task<T?> AsJsonAsync<T>(
+            HttpClient client,
+            CancellationToken cancellation = default,
+            System.Text.Json.JsonSerializerOptions? options = null
+            )
+        {
+            var (req, logger) = this.BuildWithLogger();
+            logger ??= (a,b) => default;
+            using(var r = await SendAsync(client, req, logger, HttpCompletionOption.ResponseHeadersRead, cancellation))
+            {
+                if (!r.IsSuccessStatusCode)
+                {
+                    var responseText = await r.Content.ReadAsStringAsync();
+                    if (r.Content.Headers.ContentType?.MediaType?.Contains("json") ?? false)
+                    {
+                        var token= Newtonsoft.Json.Linq.JToken.Parse(responseText);
+                        throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, token);
+                    }
+                    throw new ApiException(req.RequestUri.ToString(), r.StatusCode, responseText, null);
+                }
+
+                using var stream = await r.Content.ReadAsStreamAsync();
+                if (typeof(IApiResponse).IsAssignableFrom(typeof(T)))
+                {
+                    var tx = (Activator.CreateInstance<T>() as IApiResponse)!;
+                    var model = await System.Text.Json.JsonSerializer.DeserializeAsync(
+                    stream,
+                    tx.GetModelType(),
+                    options,
+                    cancellationToken: cancellation);
+                    tx.Initialize(r, model);
+                    return (T)tx;
+                }
+
+                return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(
+                    stream, 
+                    options,
+                    cancellationToken: cancellation);
+            }
+        }
 
     }
 }
